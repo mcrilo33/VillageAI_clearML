@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pandas as pd
-import numpy as np
 import peakutils
 import yaml
 import re
+import json
 import pprint as pp
 import tensorflow as tf
+import pandas as pd
+import numpy as np
 # import utils.q_outliers as q_outliers
 from glob import glob
 import warnings
@@ -402,8 +403,8 @@ task = Task.init(
 # Use either dataset_task_id to point to a tasks artifact or
 # use a direct url with dataset_url
 args = {
-    'extracted_df_task_id': '116af75cadeb4fa591fb013cd1824fb3',
-    'config': '',
+    'extracted_df_url': 'https://files.community.clear.ml/AltaroadCML/read_npz.e4e8ec4d4de740c2895ddc562a79bc0e/artifacts/extracted_df/extracted_df.pkl',
+    'config_path': '/Users/mcrilo33/Repos/VillageAI_clearML/configs/datasets/GSD.yaml',
 }
 
 config_path = \
@@ -416,8 +417,21 @@ print('Arguments: {}'.format(args))
 # only create the task, we will actually execute it later
 task.execute_remotely()
 
-dataset_task = Task.get_task(task_id=args['extracted_df_task_id'])
-extracted_df = dataset_task.artifacts['extracted_df'].get()[0]
+# args['config'] = json.loads(args['config'])
+extracted_pickle = StorageManager.get_local_copy(remote_url=args['extracted_df_url'])
+extracted_df = pickle.load(open(extracted_pickle, 'rb'))
+extracted_df = extracted_df[0]
+
+print('Loading config at {}'.format(config_path))
+with open(config_path) as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+pp.pprint(config)
+task.connect_configuration(
+    config,
+    name='Config',
+    description='Specify each processing steps with their parameters.'
+)
+
 dataset = pipeline(extracted_df, config)
 
 # upload processed data
